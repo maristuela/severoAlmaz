@@ -1,0 +1,18 @@
+SELECT employee.ID, employee.profession, lerning_division.month, MAX(training_report_OT.date) AS max_date, strftime('%Y', training_report_OT.date) AS year, date('now'), strftime('%Y', date('now')) - strftime('%Y', training_report_OT.date) 
+FROM employee
+JOIN lerning_division ON employee.division = lerning_division.division
+JOIN lerning_profession ON employee.profession = lerning_profession.ID
+JOIN training_report_OT ON employee.ID = training_report_OT.ID_employee 
+WHERE lerning_profession.type = 'ОТ' AND lerning_profession.number = 1 AND strftime('%Y', date('now')) - strftime('%Y', training_report_OT.date) > (SELECT curse.year FROM curse WHERE curse.number = 1 AND curse.type = 'ОТ')
+GROUP BY ID_employee
+
+
+
+--WHERE employee.division = 1 AND plane_OT.date = 3
+--# SELECT MAX(date) AS max_date FROM training_report_OT
+
+--JOIN (/*
+-- SELECT ID_employee, MAX(date) AS max_date 
+-- FROM training_report_OT 
+-- GROUP BY ID_employee
+--) tr ON e.ID = tr.ID_employee*/
