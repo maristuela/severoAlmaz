@@ -65,7 +65,7 @@ def select_plan(call):
     plan_type_name = 'ПБ' if plan_type=='PB' else 'ОТ'
     
     if not plans:
-        bot.send_message(call.message.chat.id, f"Не было запланировано обучений в этом месяцедля типа {plan_type_name}.")
+        bot.send_message(call.message.chat.id, f"Не было запланировано обучений в этом месяце для типа {plan_type_name}.")
         return
     
     ask_training(call.message.chat.id, plans, 0, plan_type)
@@ -75,7 +75,14 @@ def ask_training(chat_id, plans, index, plan_type):
         bot.send_message(chat_id, "Все запланированные обучения были внесены в базу.")
         return
     
-    employee_id, curse_num, date ,start_date, end_date = plans[index]
+    # Adjusted for OT attributes
+    if plan_type == 'PB':
+        employee_id, curse_num, date ,start_date, end_date = plans[index]
+        plan_type_name = 'ПБ'
+    else:  # For OT
+        employee_id, category, number, profession, date, start_date, end_date = plans[index]
+        curse_num = number  # Renaming for consistency in usage
+        plan_type_name = 'ОТ'
     
     # Fetch employee name
     conn = connect_db()
@@ -85,7 +92,6 @@ def ask_training(chat_id, plans, index, plan_type):
     
     if employee_name:
         employee_name = employee_name[0]
-        plan_type_name = 'ПБ' if plan_type=='PB' else 'ОТ'
         question_text = f"Прошел ли {employee_name} в этом месяце обучение {plan_type_name} {curse_num}?"
         
         markup = telebot.types.InlineKeyboardMarkup()
@@ -120,21 +126,41 @@ def handle_document_number(message, index, curse_num, plan_type):
     document_number = message.text
     conn = connect_db()
     cursor = conn.cursor()
-
     table_name = 'plane_PB' if plan_type == 'PB' else 'plane_OT'
+    
+    # Adjusted for OT attributes
     cursor.execute(f"SELECT * FROM {table_name} LIMIT 1 OFFSET ?", (index,))
     plane_details = cursor.fetchone()
 
     if plane_details:
-        employee_id, curse_num, date, start_date, end_date = plane_details
-        
-        cursor.execute(
-            "INSERT INTO training_report_PB (ID_employee, curse_num, details_document, result, date, start_date, end_date) VALUES (?, ?, ?, 1,date('now'), ?, ?)",
-            (employee_id, curse_num, document_number, start_date, end_date)
+        if plan_type == 'PB':
+            employee_id, curse_num, date, start_date, end_date = plane_details
+            profession = None  # Not applicable for PB
+            cursor.execute(
+                "INSERT INTO training_report_PB (ID_employee, details_document, curse_num, result,date) VALUES (?, ?, ?, 1 ,?)",
+                (employee_id,
+                 document_number,
+                 curse_num,
+                 end_date)
         )
+        else:  # For OT
+            employee_id, category, number, profession, date, start_date, end_date = plane_details
+            curse_num = number
+        
+            cursor.execute(
+                "INSERT INTO training_report_OT (ID_employee, category, curse_num, details_document, curse_profession, date) VALUES (?, ?, ?, ?, ?, ?)",
+                (employee_id, 
+                 category,
+                 curse_num,
+                 document_number,
+                 profession,
+                 end_date) 
+            )
+        
         cursor.execute("SELECT full_name FROM employee WHERE ID = ?", (employee_id,))
         employee_name = cursor.fetchone()[0]
         conn.commit()
+        
         bot.send_message(message.chat.id, f"Информация об обучении успешно внесена для {employee_name}.")
         
         ask_training(message.chat.id, fetch_training_plans(month=int(start_date.split('-')[1]), plan_type=plan_type), index + 1, plan_type)
@@ -151,23 +177,46 @@ def handle_reason(call):
     cursor = conn.cursor()
 
     table_name = 'plane_PB' if plan_type == 'PB' else 'plane_OT'
+    reason_msg = "Неявка записана" if reason_type == "not_show" else "Не сдача записана"
+    # Adjusted for OT attributes
     cursor.execute(f"SELECT * FROM {table_name} LIMIT 1 OFFSET ?", (index,))
     plane_details = cursor.fetchone()
 
     if plane_details:
-        employee_id, curse_num, date, start_date, end_date = plane_details
-        cursor.execute(
-            "INSERT INTO training_report_PB (ID_employee, curse_num, details_document, result,date, start_date, end_date) VALUES (?, ?, NULL, 0,date('now'), ?, ?)",
-            (employee_id, curse_num, start_date, end_date)
+        if plan_type == 'PB':
+            employee_id, curse_num, date ,start_date, end_date = plane_details
+            profession = None  # Not applicable for PB
+            category = None     # Not applicable for PB
+            cursor.execute(
+                "INSERT INTO training_report_PB (ID_employee, details_document, curse_num, result,date) VALUES (?, ?, ?, 0 ,?)",
+                (employee_id,
+                 reason_msg,
+                 curse_num,
+                 end_date)
         )
+        else:  # For OT
+            employee_id, category, number, profession, date ,start_date ,end_date= plane_details
+        
+            cursor.execute(
+                "INSERT INTO training_report_OT (ID_employee, category ,curse_num ,details_document,curse_profession,date) VALUES (?, ?, ?, ? ,?,?)",
+                (employee_id,
+                category,
+                curse_num,
+                reason_msg,
+                profession,
+                end_date)
+            )
+        
         cursor.execute("SELECT full_name FROM employee WHERE ID = ?", (employee_id,))
         employee_name = cursor.fetchone()[0]
         conn.commit()
         
-        reason_msg = "Неявка записана" if reason_type == "no_show" else "Не сдача записана"
         bot.send_message(call.message.chat.id, f"{reason_msg} для {employee_name}.")
         
-        ask_training(call.message.chat.id, fetch_training_plans(month=int(start_date.split('-')[1]), plan_type=plan_type), index + 1, plan_type)
+        ask_training(call.message.chat.id,
+                     fetch_training_plans(month=int(start_date.split('-')[1]), plan_type=plan_type),
+                     index + 1,
+                     plan_type)
 
     conn.close()
 
