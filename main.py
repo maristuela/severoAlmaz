@@ -48,7 +48,7 @@ context = {
 # SELECT MAX(date) AS max_date FROM training_report_OT
 
 profession = 0
-moth = -1
+month = -1
 #
 
 test_quition = telebot.types.ReplyKeyboardMarkup(True, True)
@@ -103,6 +103,8 @@ def start_message(message):
     # con.commit()
     print(message.chat.id)
     print(message.chat)
+    bot.send_message(message.chat.id, 'Введите ваше ФИО')
+    bot.send_message(message.chat.id, 'Вы авторизовались, как работник ОЦ')
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button = types.KeyboardButton("Поделиться номером", request_contact=True)
@@ -130,7 +132,6 @@ def handle_contact(message):
         cursor.execute(sqlite_select)
         con.commit()
         bot.send_message(message.chat.id, 'Успешная авторизация')
-        # bot.send_message(message.chat.id, 'Вы авторизовались, как работник ОЦ')
         profession = 1
 
     else :
@@ -164,6 +165,7 @@ def memoOT2(id, date):
     cursor_tg.execute(sqlite_select_tg)
     tg = cursor_tg.fetchall()[0][2]
     print(tg)
+    print(date)
 
     num = 0
 
@@ -532,6 +534,7 @@ def query_handler(call):
 
 @bot.message_handler(content_types=['text'])
 def text(message):
+    global month
     if (key == "employ"):
 
         # Запрос на ОТ предстоящие образовательные курсы
@@ -625,9 +628,11 @@ def text(message):
                 doc.close()
 
                 return
-    elif (message.text == "ОТ 1"):
-        memoOT2(message.chat.id, moth)
+    elif (message.text == "ОТ 2"):
+        memoOT2(message.chat.id, month)
     elif (int(message.text) >= 1 and int(message.text) < 13):
+        print(int(message.text))
+        month = int(message.text)
         bot.send_message(message.chat.id, "По какому типу обучения составить записку?",
                          reply_markup=type_lerning)
 

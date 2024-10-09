@@ -11,15 +11,19 @@ import emoji
 
 token = '7526701581:AAEj5YAQJ8B-_VaKAEaGjdtw4ckL_aA1u-A'
 bot = telebot.TeleBot(token)
+user_states = {}
 
+type_new_lerning = {}
 
 
 key = ""
 key_memo = 0000-00-00
 file_path = 'training_report.xlsx'  # Укажите путь к вашему файлу
 
-
 doc = DocxTemplate("Форма СЗ на обучение по ОТ (ОТ обучение 2).docx")
+doc1 = DocxTemplate("Шаблон ОТ 1.docx")
+docpb = DocxTemplate("ПБшаблон.docx")
+# doc2 = DocxTemplate("ПБ_шаблон.docx")
 
 oneDate = 0
 twoDate = 0
@@ -51,10 +55,45 @@ context = {
     'email4': ''
 }
 
+
+context1 = {
+    'data': '',
+    'name': '',
+    'profession': '',
+    'division': '',
+    'newProfession': '',
+    'trabl': '',
+    'phone': '',
+    'data1': '',
+    'name1': '',
+    'profession1': '',
+    'division1': '',
+    'newProfession1': '',
+    'trabl1': '',
+    'phone1': ''
+
+}
+
+
+
+context2 = {
+    'data': '',
+    'name': '',
+    'profession': '',
+    'division': '',
+    'document': '',
+    'data1': '',
+    'name1': '',
+    'profession1': '',
+    'division1': '',
+    'document1': ''
+
+}
+
 # SELECT MAX(date) AS max_date FROM training_report_OT
 
 profession = 0
-moth = -1
+month = -1
 #
 
 test_quition = telebot.types.ReplyKeyboardMarkup(True, True)
@@ -66,21 +105,57 @@ type_lerning.row("ОТ 1", "ОТ 2", "ПБ (1-7)")
 
 type_lerning_two = telebot.types.ReplyKeyboardMarkup(True, True)
 type_lerning_two.row("ОТ", "ПБ")
+
+
 # test_quition.row('7', '8', '9', '10', '11', '12')
 # remove_keyboard = telebot.types.ReplyKeyboardRemove()
 
-function0 = telebot.types.InlineKeyboardMarkup()
+ruc = telebot.types.InlineKeyboardMarkup()
+YZ = telebot.types.InlineKeyboardMarkup()
 function1 = telebot.types.InlineKeyboardButton("Составить отчет по работнику", callback_data="employ")
 function2 = telebot.types.InlineKeyboardButton("Составить отчет на год", callback_data="year")
-function3 = telebot.types.InlineKeyboardButton("Добавить новое обучение", callback_data="calendar")
-function4 = telebot.types.InlineKeyboardButton("Сформировать служебную записку (ОТ2)", callback_data="memo")
+function3 = telebot.types.InlineKeyboardButton("Добавить новое обучение", callback_data="curse")
+function4 = telebot.types.InlineKeyboardButton("Сформировать служебную записку", callback_data="memo")
 function5 = telebot.types.InlineKeyboardButton("Скоректировать обучение по срокам", callback_data="time")
-function6 = telebot.types.InlineKeyboardButton("Новый работник", callback_data="newEmployee")
-function7 = telebot.types.InlineKeyboardButton("Добавить информацию по обучению", callback_data="newLerning")
-function8 = telebot.types.InlineKeyboardButton("Добавить работника на обучение", callback_data="employeeLerning")
-function9 = telebot.types.InlineKeyboardButton("Cформировать отчет по своему подразделению за периуд времени", callback_data="document")
-function0.add(function1).add(function2).add(function3).add(function4).add(function5).add(function7).add(function8).add(function9)
+# работает
+function6 = telebot.types.InlineKeyboardButton("Новый работник", callback_data="add_employee")
 
+function7 = telebot.types.InlineKeyboardButton("Добавить информацию по обучению", callback_data="newLerning")
+# function8 = telebot.types.InlineKeyboardButton("Добавить работника на обучение", callback_data="employeeLerning")
+# работает
+function9 = telebot.types.InlineKeyboardButton("Cформировать отчет по своему подразделению за период времени", callback_data="document")
+ruc.add(function4).add(function9).add(function6)#.add(function8).add(function5)
+YZ.add(function1).add(function2).add(function3).add(function7)
+
+
+def get_professions(state):
+    conn = sqlite3.connect('BdTrainingCenter.db')
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT ID, profession FROM code_profession")
+    professions = cursor.fetchall()
+    conn.close()
+    return professions
+
+
+def add_employee(full_name, profession_id, division, email):
+    conn = sqlite3.connect('BdTrainingCenter.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT MAX(ID) FROM employee")
+    last_id = cursor.fetchone()[0]
+
+    if last_id is None:
+        last_id = 0
+
+    new_id = last_id + 1
+
+    cursor.execute("INSERT INTO employee (ID, full_name, profession, division, email) VALUES (?, ?, ?, ?, ?)",
+                   (new_id, full_name, profession_id, division, email))
+
+    conn.commit()
+    conn.close()
+
+    return new_id
 
 
 def clean_xlsx():
@@ -118,13 +193,13 @@ def start_message(message):
     # con.commit()
     print(message.chat.id)
     print(message.chat)
-    bot.send_message(message.chat.id, 'Введите ваше ФИО')
-    bot.send_message(message.chat.id, 'Вы авторизовались, как работник ОЦ')
+    # bot.send_message(message.chat.id, 'Введите ваше ФИО')
+    # bot.send_message(message.chat.id, 'Вы авторизовались, как работник ОЦ')
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button = types.KeyboardButton("Поделиться номером", request_contact=True)
     markup.add(button)
-    bot.send_message(message.chat.id, "Привет! Нажми на кнопку ниже, чтобы поделиться своим номером:",
+    bot.send_message(message.chat.id, "Здравствуйте! Чтобы вы могли авторизоваться, нам нужен ваш номер. Нажмите на кнопку снизу,чтобы поделиться номером",
                      reply_markup=markup)
 
 
@@ -140,13 +215,31 @@ def handle_contact(message):
 
     sqlite_select = f"""SELECT * FROM manager WHERE phone = {phone_number}"""
     cursor.execute(sqlite_select)
+    rows = cursor.fetchall()
+    if rows:  # Проверяем, что строки существуют
+        row = rows[0]
+        print(row)
+        if (row[2] == -1):
+            profession = -1
+            bot.send_message(message.chat.id, 'Вы успешно авторизовались, как работник образовательного центра')
+            print(profession)
+            sqlite_select = f"""UPDATE manager SET tg = {message.chat.id} WHERE phone = {phone_number}"""
+            cursor.execute(sqlite_select)
+            con.commit()
+            menu(message.chat.id)
+            # bot.send_message(message.chat.id, 'Успешная авторизация')
+        if (row[2] == 1):
+            profession = 1
+            bot.send_message(message.chat.id, 'Вы успешно авторизовались, как руководитель подразделения')
+            print(profession)
+            sqlite_select = f"""UPDATE manager SET tg = {message.chat.id} WHERE phone = {phone_number}"""
+            cursor.execute(sqlite_select)
+            con.commit()
+            menu(message.chat.id)
+            # bot.send_message(message.chat.id, 'Успешная авторизация')
 
-    if len(cursor.fetchall()) == 1 :
-        profession = 1
-        sqlite_select = f"""UPDATE manager SET tg = {message.chat.id} WHERE phone = {phone_number}"""
-        cursor.execute(sqlite_select)
-        con.commit()
-        bot.send_message(message.chat.id, 'Успешная авторизация')
+
+
 
     else :
         bot.send_message(message.chat.id, 'Вас нет в списке сотрудников')
@@ -163,15 +256,24 @@ def menu(message):
         con = sqlite3.connect('BdTrainingCenter.db')
         cursor = con.cursor()
         cursor.execute(sqlite_select)
-        if (len(cursor.fetchall()) == 1):
+        for row in cursor.fetchall():
+            if (row[2] == -1):
+                profession = -1
+            else:
+                profession = 1
 
-            profession = 1
-
-    else:
+    if (profession == 1):
         menu(message.chat.id)
+    if (profession == -1):
+        menu(message.chat.id)
+    print(profession)
 
 def menu(id):
-    bot.send_message(id, text='Вот что я могу:', reply_markup=function0)
+    print(profession)
+    if (profession == -1):
+        bot.send_message(id, text='Вот что я могу:', reply_markup=YZ)
+    elif (profession == 1):
+        bot.send_message(id, text='Вот что я могу:', reply_markup=ruc)
     global key_memo
     key_memo = 1
     # bot.send_message(id,
@@ -181,7 +283,7 @@ def menu(id):
 
 
 
-
+# функция для заполнение документа типа ОТ2
 def memoOT2(id, date):
     sqlite_select_tg = f"""SELECT * FROM manager WHERE tg = {id}"""
     con_tg = sqlite3.connect('BdTrainingCenter.db')
@@ -189,17 +291,25 @@ def memoOT2(id, date):
     cursor_tg.execute(sqlite_select_tg)
     tg = cursor_tg.fetchall()[0][2]
     print(tg)
+    print(date)
 
     num = 0
 
     con = sqlite3.connect('BdTrainingCenter.db')
     cursor = con.cursor()
-
-    sqlite_select = f"""SELECT employee.full_name, code_profession.Profession, employee.division, plane_OT.date, employee.email, plane_OT.number
+    # SELECT plane_PB.end_date, employee.full_name, code_profession.Profession, employee.division, training_report_PB.details_document
+    # FROM employee
+    # JOIN plane_PB ON employee.ID = plane_PB.ID
+    # JOIN training_report_PB ON training_report_PB.ID_employee = employee.ID
+    # JOIN code_profession ON employee.profession = code_profession.ID
+    # WHERE employee.division = 1 AND strftime('%m', plane_PB.start_date) = '11'
+    # GROUP BY employee.ID
+    sqlite_select = f"""SELECT employee.full_name, code_profession.Profession, employee.division, plane_OT.end_date, employee.email, plane_OT.number
 FROM employee
-JOIN plane_OT ON employee.ID = plane_OT.ID
+JOIN 
+plane_OT ON employee.ID = plane_OT.ID
 JOIN code_profession ON employee.profession = code_profession.ID
-WHERE employee.division = {tg} AND plane_OT.date = {date} AND plane_OT.number = 1
+WHERE employee.division = {tg} AND strftime('%m', plane_OT.start_date) = '{date}' AND plane_OT.number = 2
 """
     cursor.execute(sqlite_select)
     # for row_emp in cursorEmployee.fetchall():
@@ -272,7 +382,7 @@ WHERE employee.division = {tg} AND plane_OT.date = {date} AND plane_OT.number = 
             # Сохранение документа
             doc.save("ОТ2.docx")
             with open('./ОТ2.docx', 'rb') as document:
-                bot.send_document('5211807364', document)
+                bot.send_document(id, document)
             document.close()
             context['name'] = ''
             context['profession'] = ''
@@ -315,7 +425,7 @@ WHERE employee.division = {tg} AND plane_OT.date = {date} AND plane_OT.number = 
         # doc.save("ОТ2"+ f"{row[0]}"+ ".docx")
         doc.save("ОТ2.docx")
         with open('./ОТ2.docx', 'rb') as document:
-            bot.send_document('5211807364', document)
+            bot.send_document(id, document)
         document.close()
         context['name'] = ''
         context['profession'] = ''
@@ -353,27 +463,33 @@ WHERE employee.division = {tg} AND plane_OT.date = {date} AND plane_OT.number = 
     #                            'rb')
     # bot.send_document(message.from_user.id, doc)
 
-
-def memoOT1(id, date):
+def memoOT(id, date):
     sqlite_select_tg = f"""SELECT * FROM manager WHERE tg = {id}"""
     con_tg = sqlite3.connect('BdTrainingCenter.db')
     cursor_tg = con_tg.cursor()
     cursor_tg.execute(sqlite_select_tg)
     tg = cursor_tg.fetchall()[0][2]
-    full_name = cursor_tg.fetchall()[0][1]
     print(tg)
+    print(date)
 
     num = 0
 
     con = sqlite3.connect('BdTrainingCenter.db')
     cursor = con.cursor()
-
-    sqlite_select = f"""SELECT lerning_division.date, employee.full_name, code_profession.Profession, employee.division, employee.email
-    FROM employee
-    JOIN lerning_division ON lerning_division.month = plane_OT.date
-    JOIN plane_OT ON employee.ID = plane_OT.ID
-    JOIN code_profession ON employee.profession = code_profession.ID
-    WHERE employee.division = {tg} AND plane_OT.date = {date}"""
+    # SELECT plane_PB.end_date, employee.full_name, code_profession.Profession, employee.division, training_report_PB.details_document
+    # FROM employee
+    # JOIN plane_PB ON employee.ID = plane_PB.ID
+    # JOIN training_report_PB ON training_report_PB.ID_employee = employee.ID
+    # JOIN code_profession ON employee.profession = code_profession.ID
+    # WHERE employee.division = 1 AND strftime('%m', plane_PB.start_date) = '11'
+    # GROUP BY employee.ID
+    sqlite_select = f"""SELECT employee.full_name, code_profession.Profession, employee.division, plane_OT.end_date, employee.email, plane_OT.number
+FROM employee
+JOIN 
+plane_OT ON employee.ID = plane_OT.ID
+JOIN code_profession ON employee.profession = code_profession.ID
+WHERE employee.division = {tg} AND strftime('%m', plane_OT.start_date) = '{date}' AND plane_OT.number = 2
+"""
     cursor.execute(sqlite_select)
     # for row_emp in cursorEmployee.fetchall():
     #     if row_emp[3] == 1:
@@ -445,7 +561,7 @@ def memoOT1(id, date):
             # Сохранение документа
             doc.save("ОТ2.docx")
             with open('./ОТ2.docx', 'rb') as document:
-                bot.send_document('5211807364', document)
+                bot.send_document(id, document)
             document.close()
             context['name'] = ''
             context['profession'] = ''
@@ -488,7 +604,7 @@ def memoOT1(id, date):
         # doc.save("ОТ2"+ f"{row[0]}"+ ".docx")
         doc.save("ОТ2.docx")
         with open('./ОТ2.docx', 'rb') as document:
-            bot.send_document('5211807364', document)
+            bot.send_document(id, document)
         document.close()
         context['name'] = ''
         context['profession'] = ''
@@ -526,7 +642,258 @@ def memoOT1(id, date):
     #                            'rb')
     # bot.send_document(message.from_user.id, doc)
 
+def memoOT1(id, date):
+    sqlite_select_tg = f"""SELECT * FROM manager WHERE tg = {id}"""
+    con_tg = sqlite3.connect('BdTrainingCenter.db')
+    cursor_tg = con_tg.cursor()
+    cursor_tg.execute(sqlite_select_tg)
+    tg = cursor_tg.fetchall()[0][2]
+    print(tg)
+    print(date)
+    # SELECT plane_PB.end_date, employee.full_name, code_profession.Profession, employee.division, training_report_PB.details_document
+    # FROM employee
+    # JOIN plane_PB ON employee.ID = plane_PB.ID
+    # JOIN training_report_PB ON training_report_PB.ID_employee = employee.ID
+    # JOIN code_profession ON employee.profession = code_profession.ID
+    # WHERE employee.division = 1 AND strftime('%m', plane_PB.start_date) = '11'
+    # GROUP BY employee.ID
+    num = 0
 
+    con = sqlite3.connect('BdTrainingCenter.db')
+    cursor = con.cursor()
+
+    sqlite_select = f"""SELECT 
+plane_OT.end_date,
+employee.full_name,
+employee_profession.Profession AS employee_profession,
+employee.division,
+plane_profession.Profession AS plane_profession,
+employee.email
+FROM 
+employee 
+JOIN 
+plane_OT ON employee.ID = plane_OT.ID
+JOIN 
+code_profession AS employee_profession ON employee.profession = employee_profession.ID 
+JOIN 
+code_profession AS plane_profession ON plane_OT.profession = plane_profession.ID 
+WHERE 
+employee.division = {tg} 
+AND strftime('%m', plane_OT.start_date) = '{date}' AND plane_OT.number = 1
+
+"""
+    cursor.execute(sqlite_select)
+    # for row_emp in cursorEmployee.fetchall():
+    #     if row_emp[3] == 1:
+    #         for row_emp in cursorEmployee.fetchall():
+
+    # Данные для заполнения шаблона
+    for row in cursor.fetchall():
+        print(row)
+        if num == 0:
+            #     'data': '',
+            #     'name': '',
+            #     'profession': '',
+            #     'division': '',
+            #     'newProfession': '',
+            #     'trabl': '',
+            #     'phone': '',
+            context1['data'] = row[0]
+            context1['name'] = row[1]
+            print(context['data'])
+            context1['profession'] = row[2]
+            context1['division'] = row[3]
+            context1['newProfession'] = row[4]
+            context1['trabl'] = ' '
+            context1['phone'] = row[5]
+        elif num == 1:
+            # 'name': '',
+            #     'profession': '',
+            #     'division': '',
+            #     'data': '',
+            #     'email': '',
+            context1['data1'] = row[0]
+            context1['name1'] = row[1]
+            # print(context['profession'])
+            context1['profession1'] = row[2]
+            context1['division1'] = row[3]
+            context1['newProfession1'] = row[4]
+            context1['trabl1'] = ' '
+            context1['phone1'] = row[5]
+            num = -1
+            # Заполнение шаблона данными
+            doc1.render(context1)
+
+            # Сохранение документа
+            # doc.save("ОТ2"+ f"{row[0]}"+ ".docx")
+            doc1.save("ОТ1.docx")
+            with open('./ОТ1.docx', 'rb') as document:
+                bot.send_document(id, document)
+            document.close()
+            context1['data'] = ''
+            context1['name'] = ''
+            # print(context['profession'])
+            context1['profession'] = ''
+            context1['division'] = ''
+            context1['newProfession'] = ''
+            context1['trabl'] = ''
+            context1['phone'] = ''
+            # print(context['profession'])
+            context1['profession1'] = ''
+            context1['division1'] = ''
+            context1['newProfession1'] = ''
+            context1['trabl1'] = ''
+            context1['phone1'] = ''
+            context1['data1'] = ''
+            context1['name1'] = ''
+        num = num + 1
+
+    if num != 0:
+        # Заполнение шаблона данными
+        doc1.render(context1)
+
+        # Сохранение документа
+        # doc.save("ОТ2"+ f"{row[0]}"+ ".docx")
+        doc1.save("ОТ1.docx")
+        with open('./ОТ1.docx', 'rb') as document:
+            bot.send_document(id, document)
+        document.close()
+        context1['name'] = ''
+        context1['profession'] = ''
+        print(context1['profession'])
+        context1['division'] = ''
+        context1['data'] = ''
+        context1['email'] = ''
+
+        context1['name1'] = ''
+        context1['profession1'] = ''
+        context1['division1'] = ''
+        context1['data1'] = ''
+        context1['email1'] = ''
+
+
+    # df.to_excel('./training_report.xlsx', sheet_name=message.text, index=False)
+    # doc = open(r'D:\проекты питон\severalmaz_training_center_bot\training_report.xlsx',
+    #                            'rb')
+    # bot.send_document(message.from_user.id, doc)
+
+
+
+def memoPB(id, date):
+    sqlite_select_tg = f"""SELECT * FROM manager WHERE tg = {id}"""
+    con_tg = sqlite3.connect('BdTrainingCenter.db')
+    cursor_tg = con_tg.cursor()
+    cursor_tg.execute(sqlite_select_tg)
+    tg = cursor_tg.fetchall()[0][2]
+    print(tg)
+    print(date)
+
+    num = 0
+
+    con = sqlite3.connect('BdTrainingCenter.db')
+    cursor = con.cursor()
+
+    sqlite_select = f"""SELECT plane_PB.end_date, employee.full_name, code_profession.Profession, employee.division, training_report_PB.details_document
+FROM employee
+JOIN plane_PB ON employee.ID = plane_PB.ID
+JOIN training_report_PB ON training_report_PB.ID_employee = employee.ID
+JOIN code_profession ON employee.profession = code_profession.ID
+WHERE employee.division = {tg} AND strftime('%m', plane_PB.start_date) = '{date}'
+GROUP BY employee.ID
+
+"""
+    cursor.execute(sqlite_select)
+    # for row_emp in cursorEmployee.fetchall():
+    #     if row_emp[3] == 1:
+    #         for row_emp in cursorEmployee.fetchall():
+
+    # Данные для заполнения шаблона
+    for row in cursor.fetchall():
+        print(row)
+        if num == 0:
+            #     'data': '',
+            #     'name': '',
+            #     'profession': '',
+            #     'division': '',
+            #     'newProfession': '',
+            #     'trabl': '',
+            #     'phone': '',
+            context2['data'] = row[0]
+            context2['name'] = row[1]
+            print(context['data'])
+            context2['profession'] = row[2]
+            context2['division'] = row[3]
+            context2['document'] = row[4]
+        elif num == 1:
+            # 'name': '',
+            #     'profession': '',
+            #     'division': '',
+            #     'data': '',
+            #     'email': '',
+            context2['data1'] = row[0]
+            context2['name1'] = row[1]
+            # print(context['profession'])
+            context2['profession1'] = row[2]
+            context2['division1'] = row[3]
+            context2['document1'] = row[4]
+            num = -1
+            # Заполнение шаблона данными
+            docpb.render(context2)
+
+            # Сохранение документа
+            # doc.save("ОТ2"+ f"{row[0]}"+ ".docx")
+            docpb.save("ПБ.docx")
+            with open('./ПБ.docx', 'rb') as document:
+                bot.send_document(id, document)
+            document.close()
+
+            #  'data': '',
+            #     'name': '',
+            #     'profession': '',
+            #     'division': '',
+            #     'document': '',
+            #     'data1': '',
+            #     'name1': '',
+            #     'profession1': '',
+            #     'division1': '',
+            #     'document1': ''
+
+            context2['data'] = ''
+            context2['name'] = ''
+            # print(context['profession'])
+            context2['profession'] = ''
+            context2['division'] = ''
+            context2['document'] = ''
+            # print(context['profession'])
+            context2['profession1'] = ''
+            context2['division1'] = ''
+            context2['document1'] = ''
+            context2['data1'] = ''
+            context2['name1'] = ''
+        num = num + 1
+
+    if num != 0:
+        # Заполнение шаблона данными
+        docpb.render(context2)
+
+        # Сохранение документа
+        # doc.save("ОТ2"+ f"{row[0]}"+ ".docx")
+        docpb.save("ПБ.docx")
+        with open('./ПБ.docx', 'rb') as document:
+            bot.send_document(id, document)
+        document.close()
+        context2['data'] = ''
+        context2['name'] = ''
+        # print(context['profession'])
+        context2['profession'] = ''
+        context2['division'] = ''
+        context2['document'] = ''
+        # print(context['profession'])
+        context2['profession1'] = ''
+        context2['division1'] = ''
+        context2['document1'] = ''
+        context2['data1'] = ''
+        context2['name1'] = ''
 
 
 @bot.message_handler(commands=['date'])
@@ -552,7 +919,7 @@ def cal(c):
                               c.message.message_id)
         if (oneDate == 0000-00-00):
             oneDate = result
-            bot.edit_message_text("Выберите дату окончания периуда",
+            bot.edit_message_text("Выберите дату окончания периода",
                                   c.message.chat.id,
                                   c.message.message_id)
             date(c.message)
@@ -566,17 +933,10 @@ def cal(c):
             for row in cursor:
                 division = row[2]
 
+# !!!!!!!
+#            !!!! Заполнить отчет данными о прошедших и будущих обучения за указанный периуд!!!!!!
 
-#             Заполнить отчет данными о прошедших и будущих обучения за указанный периуд
-# SELECT employee.full_name,code_profession.profession, training_report_OT.curse_profession, training_report_OT.curse_num, training_report_OT.date
-#     FROM employee
-#     JOIN training_report_OT ON employee.ID = training_report_OT.ID_employee
-#     JOIN code_profession ON code_profession.ID = training_report_OT.curse_profession
-#     WHERE employee.division = 1 AND training_report_OT.date > '2022-03-30' AND training_report_OT.date < '2025-03-30'
-
-# Отчет по ОТ прошедших
-
-
+#              Отчет по ОТ прошедших
             df = pd.DataFrame(columns=['Сотрудники',
                                         'Номер обучения ОТ',
                                        'Должность на которую проходили обучение',
@@ -590,7 +950,7 @@ def cal(c):
     FROM employee
     JOIN training_report_OT ON employee.ID = training_report_OT.ID_employee 
     JOIN code_profession ON code_profession.ID = training_report_OT.curse_profession
-    WHERE employee.division = {division} AND training_report_OT.date > '2022-03-30' AND training_report_OT.date < '2025-03-30'"""
+    WHERE employee.division = {division} AND training_report_OT.date > '{oneDate}' AND training_report_OT.date < '{twoDate}'"""
             cursorProfession.execute(sqlite_select_Profession)
             for row_pro in cursorProfession.fetchall():
                 new_row = pd.DataFrame({
@@ -607,12 +967,11 @@ def cal(c):
                 # print(df)
 
             cursorProfession = con.cursor()
-            sqlite_select_Profession = f"""SELECT employee.full_name,plane_OT.number, code_profession.profession, lerning_division.date
+            sqlite_select_Profession = f"""SELECT employee.full_name,plane_OT.number, code_profession.profession ,plane_OT.end_date
                 FROM employee
                 JOIN plane_OT ON employee.ID = plane_OT.ID
-                JOIN lerning_division ON lerning_division.month = plane_OT.date
                 JOIN code_profession ON code_profession.ID = plane_OT.profession
-                WHERE employee.division = {division} AND lerning_division.start > '{oneDate}' AND lerning_division.start < '{twoDate}'"""
+                WHERE employee.division = {division} AND plane_OT.start_date > '{oneDate}' AND plane_OT.end_date < '{twoDate}'"""
             cursorProfession.execute(sqlite_select_Profession)
             for row_pro in cursorProfession.fetchall():
                 new_row = pd.DataFrame({
@@ -628,8 +987,8 @@ def cal(c):
 
                 # print(df)
 
-            df.to_excel('./Отчет_ОТ_за_периуд.xlsx', sheet_name=c.message.text, index=False)
-            doc = open(r'D:\проекты питон\severalmaz_training_center_bot\Отчет_ОТ_за_периуд.xlsx',
+            df.to_excel('./Отчет_ОТ_за_период.xlsx', sheet_name=c.message.text, index=False)
+            doc = open(r'D:\проекты питон\severalmaz_training_center_bot\Отчет_ОТ_за_период.xlsx',
                        'rb')
             bot.send_document(c.message.chat.id, doc)
             doc.close()
@@ -644,6 +1003,7 @@ def cal(c):
             con = sqlite3.connect('BdTrainingCenter.db')
 
             cursorProfession = con.cursor()
+
             sqlite_select_Profession = f"""SELECT employee.full_name,training_report_PB.curse_num, code_profession.profession, training_report_PB.details_document, training_report_PB.date
             FROM employee
             JOIN training_report_PB ON employee.ID = training_report_PB.ID_employee 
@@ -663,14 +1023,17 @@ def cal(c):
                 df = pd.concat([df, new_row], ignore_index=True)
 
                 # print(df)
-
+            # SELECT employee.full_name,plane_OT.number, code_profession.profession ,plane_OT.end_date
+            #                 FROM employee
+            #                 JOIN plane_OT ON employee.ID = plane_OT.ID
+            #                 JOIN code_profession ON code_profession.ID = plane_OT.profession
+            #                 WHERE employee.division = {division} AND plane_OT.start_date > '{oneDate}' AND plane_OT.end_date < '{twoDate}'
             cursorProfession = con.cursor()
-            sqlite_select_Profession = f"""SELECT employee.full_name,plane_PB.number, code_profession.profession, lerning_division.date
+            sqlite_select_Profession = f"""SELECT employee.full_name,plane_PB.number, code_profession.profession, plane_PB.end_date
                         FROM employee
                         JOIN plane_PB ON employee.ID = plane_PB.ID
-                        JOIN lerning_division ON lerning_division.month = plane_PB.date
                         JOIN code_profession ON code_profession.ID = employee.profession
-                        WHERE employee.division = {division} AND lerning_division.start > '{oneDate}' AND lerning_division.start < '{twoDate}'"""
+                        WHERE employee.division = {division} AND plane_PB.start_date > '{oneDate}' AND plane_PB.end_date < '{twoDate}'"""
             cursorProfession.execute(sqlite_select_Profession)
             for row_pro in cursorProfession.fetchall():
                 new_row = pd.DataFrame({
@@ -686,8 +1049,8 @@ def cal(c):
 
                 # print(df)
 
-            df.to_excel('./Отчет_ПБ_за_периуд.xlsx', sheet_name=c.message.text, index=False)
-            doc = open(r'D:\проекты питон\severalmaz_training_center_bot\Отчет_ПБ_за_периуд.xlsx',
+            df.to_excel('./Отчет_ПБ_за_период.xlsx', sheet_name=c.message.text, index=False)
+            doc = open(r'D:\проекты питон\severalmaz_training_center_bot\Отчет_ПБ_за_период.xlsx',
                        'rb')
             bot.send_document(c.message.chat.id, doc)
             doc.close()
@@ -704,6 +1067,55 @@ def query_handler(call):
     if (call.data == "employ"):
         key = "employ"
         bot.send_message(call.message.chat.id, 'Введите ФИО работника')
+
+    elif (call.data == "year"):
+        print(33)
+        con = sqlite3.connect('BdTrainingCenter.db')
+        cursorEmployee = con.cursor()
+        # bot.send_message(message.chat.id, 'Введите ФИО сотрудника по которому не обходимо составить отчет')
+        sqlite_select_employee = f"""SELECT
+    plane_OT.number,
+    lerning_division.date,
+    employee.division,
+    COUNT(employee.ID) AS participant_count
+FROM
+    employee
+JOIN lerning_division ON lerning_division.month = plane_OT.date
+JOIN
+    plane_OT ON plane_OT.ID = employee.ID
+GROUP BY
+    plane_OT.number, plane_OT.date, employee.division"""
+        cursorEmployee.execute(sqlite_select_employee)
+        df = pd.DataFrame(columns=['Вид обучения',
+                                   'Дата',
+                                   'Подразделение',
+                                   'Число работников'])
+        for row_emp in cursorEmployee.fetchall():
+            print(row_emp)
+            # Создаем новый DataFrame для добавляемой строки
+            new_row = pd.DataFrame({
+                'Вид обучения': [row_emp[0]],
+                'Дата': [row_emp[1]],
+                'Подразделение': [row_emp[2]],
+                'Число работников': [row_emp[3]]
+            }, index=[0])
+
+            # Используем pd.concat для добавления новой строки
+            df = pd.concat([df, new_row], ignore_index=True)
+        df.to_excel('./year.xlsx', sheet_name= '1 лист', index=False)
+        doc = open(r'D:\проекты питон\severalmaz_training_center_bot\year.xlsx',
+                   'rb')
+        bot.send_document(call.message.chat.id, doc)
+        doc.close()
+
+
+    elif (call.data == "curse"):
+        key = "curse"
+        bot.send_message(call.message.chat.id,
+                         "Выберите тип обучения",
+                         reply_markup=type_lerning_two)
+
+
     elif (call.data == "memo"):
         key = "memo"
         bot.send_message(call.message.chat.id, "Укажите номер месяца за, на который необходимо сформировать документы",
@@ -719,24 +1131,50 @@ def query_handler(call):
 
 
     elif (call.data == "document"):
-        bot.send_message(call.message.chat.id, 'Выберите дату начала периуда')
+        bot.send_message(call.message.chat.id, 'Выберите дату начала периода')
         date(call.message)
-    #     key = "document"
-    #     bot.send_message(call.message.chat.id, 'Напишите год, закоторый необходимо составить отчет')
-#
+
+
+    elif  (call.data == "add_employee"):
+        user_states[call.message.chat.id] = {'step': 1}
+        bot.reply_to(call.message, "Введите ФИО сотрудника")
+    elif (key == "profession"):
+        chat_id = call.message.chat.id
+        prof_id = call.data.split('_')[1]
+        user_states[chat_id]['profession_id'] = int(prof_id)
+        bot.answer_callback_query(call.id)
+        bot.send_message(chat_id, "Профессия выбрана! \nВведите email:")
+        user_states[chat_id]['step'] = 3
+
+    elif (key == "curse_4"):
+        # chat_id = call.message.chat.id
+        prof_id = call.data.split('_')[1]
+        type_new_lerning['profession_id'] = int(prof_id)
+        conn = sqlite3.connect('BdTrainingCenter.db')
+        cursor = conn.cursor()
+        bot.send_message(call.message.chat.id, "Обучение добавленно для одной профессии, чтобы добавить ещё профессии  нажмите +")
+
+        cursor.execute("INSERT INTO lerning_profession (ID, type, number) VALUES (?, ?, ?)",
+                       (type_new_lerning['profession_id'], type_new_lerning['type'], type_new_lerning['number']))
+
+        conn.commit()
+        conn.close()
+
+
 
 
 
 @bot.message_handler(content_types=['text'])
 def text(message):
-    if (message.text == "ОТ 1"):
-        memoOT2(message.chat.id, moth)
-    elif key == "memo":
-        if (message.text.isdigit()):
-            if (int(message.text) >= 1 and int(message.text) < 13):
-                # if (time.time())
-                bot.send_message(message.chat.id, "По какому типу обучения составить записку?",
-                         reply_markup=type_lerning)
+    global month
+    global key
+    global type_lerning
+    if (message.text == "ОТ 2"):
+        memoOT2(message.chat.id, month)
+    elif (message.text == "ОТ 1"):
+        memoOT1(message.chat.id, month)
+    elif (message.text == "ПБ (1-7)"):
+        memoPB(message.chat.id, month)
     elif (key == "employ"):
         print(message.text)
         con = sqlite3.connect('BdTrainingCenter.db')
@@ -812,6 +1250,92 @@ def text(message):
                 doc.close()
 
                 return
+    elif key == "memo":
+        if (message.text.isdigit()):
+            if (int(message.text) >= 1 and int(message.text) < 13):
+                # if (time.time())
+                bot.send_message(message.chat.id, "По какому типу обучения составить записку?",
+                         reply_markup=type_lerning)
+                month = int(message.text)
+    elif (key == "curse"):
+        type_new_lerning['type'] = str(message.text)
+        key = "curse_1"
+        bot.send_message(message.chat.id,
+                                 "Выведите номер обучения")
+    elif (key == "curse_1"):
+        type_new_lerning['number'] = message.text
+        key = "curse_2"
+        bot.send_message(message.chat.id, "Выведите продолжительность обучения в годах")
+    elif (message.text == "+"):
+        key = "curse_4"
+        conn = sqlite3.connect('BdTrainingCenter.db')
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT ID, profession FROM code_profession")
+        professions = cursor.fetchall()
+        conn.close()
+        markup = types.InlineKeyboardMarkup()
+
+        for prof_id, prof_name in professions:
+            markup.add(types.InlineKeyboardButton(prof_name, callback_data=f'profession_{prof_id}'))
+        bot.send_message(message.chat.id, "Выбирите профессии, которые должны обучаться новому обучению",
+                         reply_markup=markup)
+
+    elif (key == "curse_2"):
+        print(3545645)
+        type_new_lerning['year'] = int(message.text)
+        conn = sqlite3.connect('BdTrainingCenter.db')
+        cursor = conn.cursor()
+        bot.send_message(message.chat.id, "Добавленно новое обучение")
+
+        cursor.execute("INSERT INTO curse (type, number, year) VALUES (?, ?, ?)",
+        (type_new_lerning['type'], type_new_lerning['number'], type_new_lerning['year']))
+
+        conn.commit()
+        conn.close()
+        key = "curse_4"
+        conn = sqlite3.connect('BdTrainingCenter.db')
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT ID, profession FROM code_profession")
+        professions = cursor.fetchall()
+        conn.close()
+        markup = types.InlineKeyboardMarkup()
+
+        for prof_id, prof_name in professions:
+            markup.add(types.InlineKeyboardButton(prof_name, callback_data=f'profession_{prof_id}'))
+        bot.send_message(message.chat.id, "Выбирите профессии, которые должны обучаться новому обучению", reply_markup=markup)
+            # # отчет по человеку
+    state = {'step': 0}
+    try:
+        state = user_states[message.chat.id]
+    except:
+        print(3454)
+
+    if state['step'] == 1:
+        state['full_name'] = message.text
+
+        # Fetch professions and create buttons
+        bot.send_message(message.chat.id, "Введите номер подразделение")
+        state['step'] = 2
+        # key = "new_division"
+    elif state['step'] == 2:
+        state['division'] = message.text
+        # state['step'] = 2
+        professions = get_professions(state)
+        markup = types.InlineKeyboardMarkup()
+
+        for prof_id, prof_name in professions:
+            markup.add(types.InlineKeyboardButton(prof_name, callback_data=f'profession_{prof_id}'))
+
+        bot.send_message(message.chat.id, "Выберите профессию сотрудника", reply_markup=markup)
+        key = "profession"
+
+    elif state['step'] == 3:
+        # state['division'] = 1
+        state['email'] = message.text
+        new_id = add_employee(state['full_name'], state['profession_id'], state['division'], state['email'])
+
+        bot.reply_to(message, f"Новый сотрудник добавлен с ID: {new_id}")
+        del user_states[message.chat.id]
 
     elif (key == "employeeLerning"):
         con1 = sqlite3.connect('BdTrainingCenter.db')
@@ -830,7 +1354,6 @@ def text(message):
     #     if (message.text.isdigit()):
     #         bot.send_message(message.chat.id, 'Выберите дату начала периуда')
     #         date(message)
-
 
 
 
