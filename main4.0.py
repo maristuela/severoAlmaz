@@ -12,7 +12,7 @@ import logging
 from docxtpl import DocxTemplate
 import emoji
 
-token = '7526701581:AAEj5YAQJ8B-_VaKAEaGjdtw4ckL_aA1u-A'
+token = 'xxxxxxxxxxxxxxxxxxxxx'
 bot = telebot.TeleBot(token)
 user_states = {}
 
